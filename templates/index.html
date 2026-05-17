@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Test and compare image dehazing models with interactive side-by-side synced zoom comparison">
+    <title>DehazeTest — Model Comparison Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
+    <header id="app-header">
+        <div class="header-brand">
+            <div class="brand-icon">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <circle cx="14" cy="14" r="12" stroke="url(#grad1)" stroke-width="2.5" stroke-dasharray="4 3"/>
+                    <circle cx="14" cy="14" r="6" fill="url(#grad1)" opacity="0.7"/>
+                    <defs>
+                        <linearGradient id="grad1" x1="0" y1="0" x2="28" y2="28">
+                            <stop offset="0%" stop-color="#6C63FF"/>
+                            <stop offset="100%" stop-color="#3CDFFF"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <h1>DehazeTest</h1>
+            <span class="header-subtitle">Model Comparison Studio</span>
+        </div>
+        <div class="header-status">
+            <span id="device-badge" class="badge">Loading…</span>
+        </div>
+    </header>
+
+    <!-- ── Main Layout ─────────────────────────────────────────────────── -->
+    <main id="app-main">
+
+        <!-- ── Sidebar ─────────────────────────────────────────────────── -->
+        <aside id="sidebar">
+
+            <!-- Model Upload Section -->
+            <section class="panel" id="panel-upload-model">
+                <h2 class="panel-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    Upload Model
+                </h2>
+                <div class="panel-body">
+                    <div class="drop-zone" id="model-drop-zone">
+                        <div class="drop-zone-content">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="12" y1="18" x2="12" y2="12"/>
+                                <line x1="9" y1="15" x2="12" y2="12"/>
+                                <line x1="15" y1="15" x2="12" y2="12"/>
+                            </svg>
+                            <p>Drop <strong>.pth</strong> file here</p>
+                            <span class="drop-zone-hint">or click to browse</span>
+                        </div>
+                        <input type="file" id="model-file-input" accept=".pth" hidden>
+                    </div>
+                    <div class="form-group" id="model-upload-form" style="display:none;">
+                        <div class="selected-file" id="selected-model-file">
+                            <span class="file-name"></span>
+                            <button class="btn-icon btn-remove" id="btn-remove-model-file" title="Remove">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                        <label class="form-label" for="arch-select">Architecture</label>
+                        <select id="arch-select" class="form-select">
+                            <option value="dehazenet_direct">DehazeNet Direct</option>
+                            <option value="dehazenet_hybrid">DehazeNet Hybrid</option>
+                            <option value="dehazenet_plus">DehazeNet Plus</option>
+                            <option value="dehazenet">DehazeNet (Original)</option>
+                            <option value="aodnet">AOD-Net</option>
+                            <option value="aodnet_enhanced">AOD-Net Enhanced</option>
+                        </select>
+                        <button id="btn-upload-model" class="btn btn-primary btn-block">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            Upload Model
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Model Selection Section -->
+            <section class="panel" id="panel-select-model">
+                <h2 class="panel-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 7h-9"/><path d="M14 17H5"/>
+                        <circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
+                    </svg>
+                    Select Model
+                </h2>
+                <div class="panel-body">
+                    <div id="model-list" class="model-list">
+                        <div class="empty-state" id="no-models-msg">
+                            <p>No models uploaded yet</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+
+        </aside>
+
+        <!-- ── Comparison Viewer ───────────────────────────────────────── -->
+        <section id="viewer-area">
+            <div id="viewer-toolbar">
+                <div class="toolbar-group">
+                    <span class="viewer-label" id="viewer-label-left">Original</span>
+                </div>
+                <div class="toolbar-center">
+                    <button id="btn-zoom-fit" class="btn btn-ghost btn-sm" title="Fit to view">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                        </svg>
+                        Fit
+                    </button>
+                    <button id="btn-zoom-100" class="btn btn-ghost btn-sm" title="Actual size">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        1:1
+                    </button>
+                    <span class="zoom-indicator" id="zoom-indicator">100%</span>
+                    <div id="model-info-badge" class="model-info-badge" style="display:none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                        </svg>
+                        <span id="model-info-name">—</span>
+                        <span class="model-info-sep">·</span>
+                        <span id="model-info-arch">—</span>
+                    </div>
+                </div>
+                <div class="toolbar-group">
+                    <span class="viewer-label" id="viewer-label-right">Output</span>
+                    <button id="btn-new-image" class="btn btn-ghost btn-sm" title="Test another image" style="display:none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="1 4 1 10 7 10"/>
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                        </svg>
+                        New Image
+                    </button>
+                </div>
+            </div>
+            <div id="viewer-container">
+                <!-- Empty state: image upload lives here -->
+                <div id="viewer-empty-state" class="viewer-empty">
+                    <div class="viewer-upload-card">
+                        <div class="drop-zone drop-zone-viewer" id="image-drop-zone">
+                            <div class="drop-zone-content">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.4">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <polyline points="21 15 16 10 5 21"/>
+                                </svg>
+                                <p>Drop a hazy image here to get started</p>
+                                <span class="drop-zone-hint">PNG, JPG, BMP — or click to browse</span>
+                            </div>
+                            <input type="file" id="image-file-input" accept="image/*" hidden>
+                        </div>
+
+                        <!-- Preview + run (shown after image is selected) -->
+                        <div id="image-preview-container" style="display:none;">
+                            <div class="image-preview image-preview-viewer">
+                                <img id="image-preview" alt="Preview">
+                                <button class="btn-icon btn-remove btn-preview-remove" id="btn-remove-image" title="Remove image">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                </button>
+                            </div>
+                            <button id="btn-run-inference" class="btn btn-accent btn-run" disabled>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                <span class="btn-text">Run Inference</span>
+                                <span class="btn-spinner" style="display:none;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" class="spin"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="30 70" stroke-linecap="round"/></svg>
+                                    Processing…
+                                </span>
+                            </button>
+                        </div>
+
+                        <div class="viewer-upload-hint">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4">
+                                <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            <span>Scroll to zoom · Drag to pan · Both views stay in sync</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison panels (shown after inference) -->
+                <div id="viewer-panels" style="display:none;">
+                    <div class="viewer-panel" id="panel-left">
+                        <canvas id="canvas-left"></canvas>
+                    </div>
+                    <div class="viewer-divider" id="viewer-divider"></div>
+                    <div class="viewer-panel" id="panel-right">
+                        <canvas id="canvas-right"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ── Toast Notifications ─────────────────────────────────────────── -->
+    <div id="toast-container"></div>
+
+    <script src="/static/js/viewer.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
