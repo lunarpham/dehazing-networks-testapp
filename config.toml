@@ -2,7 +2,7 @@
 
 [project]
 # Path to the DehazeNet project root (relative to this file or absolute)
-dehazenet_path = "../DehazeNet"
+dehazenet_path = "../dahazing-framework"
 
 [physics]
 dark_channel_window = 15

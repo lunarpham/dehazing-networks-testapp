@@ -79,6 +79,47 @@ print(f"[DehazeTest] Using device: {DEVICE}")
 _model_cache = {}
 
 
+def _clean_state_dict(state_dict: dict) -> dict:
+    """Clean up state dict keys and extract from checkpoint wrappers."""
+    if not isinstance(state_dict, dict):
+        return state_dict
+        
+    # Extract from common checkpoint wrapper keys
+    if "state_dict" in state_dict:
+        state_dict = state_dict["state_dict"]
+    elif "model" in state_dict:
+        state_dict = state_dict["model"]
+    elif "network" in state_dict:
+        state_dict = state_dict["network"]
+
+    # Strip 'module.' prefix (from DataParallel)
+    clean_dict = {}
+    for k, v in state_dict.items():
+        name = k[7:] if k.startswith("module.") else k
+        clean_dict[name] = v
+        
+    return clean_dict
+
+
+def _infer_arch_kwargs(arch_type: str, state_dict: dict) -> dict:
+    """Detect architecture kwargs (e.g. channels) from checkpoint weight shapes."""
+    kwargs = {}
+
+    if arch_type in ("msfa_net", "msfa_net_lite"):
+        # input_proj first conv: weight shape is (channels, 3, 3, 3)
+        key = "input_proj.0.conv.weight"
+        if key in state_dict:
+            kwargs["channels"] = state_dict[key].shape[0]
+
+    elif arch_type == "dcpnet":
+        # t_conv1: weight shape is (refine_channels, 4, 3, 3)
+        key = "t_conv1.weight"
+        if key in state_dict:
+            kwargs["refine_channels"] = state_dict[key].shape[0]
+
+    return kwargs
+
+
 def _get_model(model_id: str):
     """Load and cache a model by its ID."""
     if model_id in _model_cache:
@@ -92,12 +133,17 @@ def _get_model(model_id: str):
     arch_type = info["arch_type"]
     pth_path = UPLOAD_MODELS_DIR / info["filename"]
 
-    # Build model architecture
-    config = {"network": {"type": arch_type}}
+    # Load weights first to detect architecture kwargs
+    state_dict = torch.load(str(pth_path), map_location=DEVICE, weights_only=True)
+    state_dict = _clean_state_dict(state_dict)
+
+    # Build model with correct kwargs (from metadata or auto-detected)
+    arch_kwargs = info.get("arch_kwargs", {})
+    if not arch_kwargs:
+        arch_kwargs = _infer_arch_kwargs(arch_type, state_dict)
+    config = {"network": {"type": arch_type, **arch_kwargs}}
     model = build_model(config).to(DEVICE)
 
-    # Load weights
-    state_dict = torch.load(str(pth_path), map_location=DEVICE, weights_only=True)
     model.load_state_dict(state_dict)
     model.eval()
 
@@ -116,6 +162,8 @@ def _run_inference(model, is_direct: bool, img_np: np.ndarray) -> np.ndarray:
     with torch.no_grad():
         if is_direct:
             dehazed = model(img_tensor)
+            if isinstance(dehazed, tuple):
+                dehazed = dehazed[0]
         else:
             # Transmission-based: predict t(x), then physics inversion
             t_pred = model(img_tensor)
@@ -176,7 +224,7 @@ def upload_model():
     if not file.filename.endswith(".pth"):
         return jsonify({"error": "Only .pth files are accepted"}), 400
 
-    valid_types = ["dehazenet", "dehazenet_plus", "dehazenet_direct", "dehazenet_hybrid", "aodnet", "aodnet_enhanced"]
+    valid_types = ["dehazenet", "aodnet", "msfa_net", "msfa_net_lite", "dcpnet", "unetdcp"]
     if arch_type not in valid_types:
         return jsonify({"error": f"Invalid architecture type. Must be one of: {valid_types}"}), 400
 
@@ -190,9 +238,11 @@ def upload_model():
 
     # Validate that the weights can actually be loaded into the architecture
     try:
-        config = {"network": {"type": arch_type}}
-        test_model = build_model(config)
         state_dict = torch.load(str(save_path), map_location="cpu", weights_only=True)
+        state_dict = _clean_state_dict(state_dict)
+        arch_kwargs = _infer_arch_kwargs(arch_type, state_dict)
+        config = {"network": {"type": arch_type, **arch_kwargs}}
+        test_model = build_model(config)
         test_model.load_state_dict(state_dict)
         del test_model
     except Exception as e:
@@ -202,11 +252,12 @@ def upload_model():
             "error": f"Weight file is incompatible with '{arch_type}' architecture: {str(e)}"
         }), 400
 
-    # Save metadata
+    # Save metadata (include detected kwargs for reliable reloading)
     meta = _load_models_meta()
     meta[model_id] = {
         "name": original_name,
         "arch_type": arch_type,
+        "arch_kwargs": arch_kwargs,
         "filename": safe_filename,
         "uploaded_at": datetime.now().isoformat(),
     }
@@ -264,6 +315,23 @@ def infer():
     input_filename = f"{img_id}_input{ext}"
     input_path = UPLOAD_IMAGES_DIR / input_filename
     image_file.save(str(input_path))
+
+    # Downscale large images to save VRAM and fix display issues
+    from PIL import Image
+    max_dim = 1280  # Max dimension size
+    try:
+        with Image.open(str(input_path)) as img:
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+                
+            if max(img.size) > max_dim:
+                # Use Resampling.LANCZOS if available, else LANCZOS
+                resample_filter = getattr(Image, 'Resampling', Image).LANCZOS
+                img.thumbnail((max_dim, max_dim), resample_filter)
+                
+            img.save(str(input_path))
+    except Exception as e:
+        return jsonify({"error": f"Failed to process image: {str(e)}"}), 400
 
     try:
         # Load model

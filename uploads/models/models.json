@@ -1,32 +1,27 @@
 {
-  "2c6f99d3": {
-    "name": "epoch_80",
-    "arch_type": "dehazenet_plus",
-    "filename": "epoch_80_2c6f99d3.pth",
-    "uploaded_at": "2026-05-11T09:52:31.856582"
+  "6fcefbcc": {
+    "name": "epoch_5",
+    "arch_type": "msfa_net",
+    "arch_kwargs": {
+      "channels": 64
+    },
+    "filename": "epoch_5_6fcefbcc.pth",
+    "uploaded_at": "2026-05-22T21:37:03.336711"
   },
-  "a457836b": {
-    "name": "epoch_100",
-    "arch_type": "dehazenet_direct",
-    "filename": "epoch_100_a457836b.pth",
-    "uploaded_at": "2026-05-11T09:53:16.451995"
+  "0ce42ba6": {
+    "name": "epoch_1",
+    "arch_type": "unetdcp",
+    "arch_kwargs": {},
+    "filename": "epoch_1_0ce42ba6.pth",
+    "uploaded_at": "2026-05-22T21:43:02.073777"
   },
-  "3443c45c": {
-    "name": "epoch_100",
-    "arch_type": "dehazenet_hybrid",
-    "filename": "epoch_100_3443c45c.pth",
-    "uploaded_at": "2026-05-12T17:12:27.686498"
-  },
-  "3d08779d": {
-    "name": "epoch_100",
-    "arch_type": "aodnet_enhanced",
-    "filename": "epoch_100_3d08779d.pth",
-    "uploaded_at": "2026-05-13T23:19:31.050681"
-  },
-  "3de44809": {
-    "name": "best",
-    "arch_type": "aodnet_enhanced",
-    "filename": "best_3de44809.pth",
-    "uploaded_at": "2026-05-16T14:55:33.476523"
+  "f73511bd": {
+    "name": "epoch_50",
+    "arch_type": "msfa_net",
+    "arch_kwargs": {
+      "channels": 64
+    },
+    "filename": "epoch_50_f73511bd.pth",
+    "uploaded_at": "2026-05-22T21:43:39.947388"
   }
 }

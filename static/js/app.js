@@ -185,12 +185,12 @@
 
     // Map arch type to human-readable names
     const archNames = {
-        'dehazenet': 'DehazeNet (Original)',
-        'dehazenet_plus': 'DehazeNet Plus',
-        'dehazenet_direct': 'DehazeNet Direct',
-        'dehazenet_hybrid': 'DehazeNet Hybrid',
+        'dehazenet': 'DehazeNet',
         'aodnet': 'AOD-Net',
-        'aodnet_enhanced': 'AOD-Net Enhanced',
+        'msfa_net': 'MSFA-Net',
+        'msfa_net_lite': 'MSFA-Net Lite',
+        'dcpnet': 'DCPNet',
+        'unetdcp': 'UNetDCP',
     };
 
     function renderModelList(models) {
