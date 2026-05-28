@@ -105,7 +105,7 @@ def _infer_arch_kwargs(arch_type: str, state_dict: dict) -> dict:
     """Detect architecture kwargs (e.g. channels) from checkpoint weight shapes."""
     kwargs = {}
 
-    if arch_type in ("msfa_net", "msfa_net_lite"):
+    if arch_type == "msfa_denet":
         # input_proj first conv: weight shape is (channels, 3, 3, 3)
         key = "input_proj.0.conv.weight"
         if key in state_dict:
@@ -224,7 +224,7 @@ def upload_model():
     if not file.filename.endswith(".pth"):
         return jsonify({"error": "Only .pth files are accepted"}), 400
 
-    valid_types = ["dehazenet", "aodnet", "msfa_net", "msfa_net_lite", "dcpnet", "unetdcp"]
+    valid_types = ["dehazenet", "aodnet", "msfa_denet"]
     if arch_type not in valid_types:
         return jsonify({"error": f"Invalid architecture type. Must be one of: {valid_types}"}), 400
 

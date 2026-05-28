@@ -1,27 +1,38 @@
 {
-  "6fcefbcc": {
-    "name": "epoch_5",
-    "arch_type": "msfa_net",
+  "c63c204e": {
+    "name": "best",
+    "arch_type": "msfa_denet",
     "arch_kwargs": {
       "channels": 64
     },
-    "filename": "epoch_5_6fcefbcc.pth",
-    "uploaded_at": "2026-05-22T21:37:03.336711"
+    "filename": "best_c63c204e.pth",
+    "uploaded_at": "2026-05-27T11:01:19.725529"
   },
-  "0ce42ba6": {
-    "name": "epoch_1",
-    "arch_type": "unetdcp",
-    "arch_kwargs": {},
-    "filename": "epoch_1_0ce42ba6.pth",
-    "uploaded_at": "2026-05-22T21:43:02.073777"
-  },
-  "f73511bd": {
-    "name": "epoch_50",
-    "arch_type": "msfa_net",
+  "787d1bc5": {
+    "name": "epoch_101",
+    "arch_type": "msfa_denet",
     "arch_kwargs": {
       "channels": 64
     },
-    "filename": "epoch_50_f73511bd.pth",
-    "uploaded_at": "2026-05-22T21:43:39.947388"
+    "filename": "epoch_101_787d1bc5.pth",
+    "uploaded_at": "2026-05-27T11:02:27.301024"
+  },
+  "3eea5d1f": {
+    "name": "epoch_103",
+    "arch_type": "msfa_denet",
+    "arch_kwargs": {
+      "channels": 64
+    },
+    "filename": "epoch_103_3eea5d1f.pth",
+    "uploaded_at": "2026-05-27T22:41:24.940453"
+  },
+  "cf1831ba": {
+    "name": "epoch_96",
+    "arch_type": "msfa_denet",
+    "arch_kwargs": {
+      "channels": 64
+    },
+    "filename": "epoch_96_cf1831ba.pth",
+    "uploaded_at": "2026-05-27T22:41:48.279585"
   }
 }

@@ -187,10 +187,7 @@
     const archNames = {
         'dehazenet': 'DehazeNet',
         'aodnet': 'AOD-Net',
-        'msfa_net': 'MSFA-Net',
-        'msfa_net_lite': 'MSFA-Net Lite',
-        'dcpnet': 'DCPNet',
-        'unetdcp': 'UNetDCP',
+        'msfa_denet': 'MSFA-DeNet',
     };
 
     function renderModelList(models) {
