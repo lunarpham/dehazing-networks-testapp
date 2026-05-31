@@ -1,14 +1,5 @@
 # ── Dehazing Test Webapp Configuration ────────────────────────────────────────
 
-[project]
-# Path to the DehazeNet project root (relative to this file or absolute)
-dehazenet_path = "../dahazing-framework"
-
-[physics]
-dark_channel_window = 15
-atm_light_top_percent = 0.001
-t_min = 0.1
-
 [server]
 host = "127.0.0.1"
 port = 5000

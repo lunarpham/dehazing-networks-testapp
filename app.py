@@ -1,6 +1,9 @@
 """
 Dehazing Model Testing Web Application
 Flask backend for model upload, selection, and inference.
+
+Standalone version — all model architectures are embedded locally.
+Supports: MSFA-DeNet and MSFA-DeNet v2.
 """
 
 import os
@@ -25,20 +28,11 @@ CONFIG_PATH = APP_DIR / "config.toml"
 with open(CONFIG_PATH, "rb") as f:
     CONFIG = tomllib.load(f)
 
-# Resolve DehazeNet project path and add to sys.path for imports
-DEHAZENET_PATH = Path(CONFIG["project"]["dehazenet_path"])
-if not DEHAZENET_PATH.is_absolute():
-    DEHAZENET_PATH = (APP_DIR / DEHAZENET_PATH).resolve()
+# ── Local Model Imports (standalone — no external framework) ─────────────────
 
-if str(DEHAZENET_PATH) not in sys.path:
-    sys.path.insert(0, str(DEHAZENET_PATH))
-
-# Now import DehazeNet modules
 import torch
 import numpy as np
-from src.models import build_model, DIRECT_MODELS
-from src.core import get_dark_channel, estimate_atmospheric_light, recover_image
-from src.utils import load_image, to_tensor, save_image
+from models import build_model, DIRECT_MODELS, load_image, to_tensor
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 
@@ -105,17 +99,11 @@ def _infer_arch_kwargs(arch_type: str, state_dict: dict) -> dict:
     """Detect architecture kwargs (e.g. channels) from checkpoint weight shapes."""
     kwargs = {}
 
-    if arch_type == "msfa_denet":
+    if arch_type in ("msfa_denet", "msfa_denet_v2"):
         # input_proj first conv: weight shape is (channels, 3, 3, 3)
         key = "input_proj.0.conv.weight"
         if key in state_dict:
             kwargs["channels"] = state_dict[key].shape[0]
-
-    elif arch_type == "dcpnet":
-        # t_conv1: weight shape is (refine_channels, 4, 3, 3)
-        key = "t_conv1.weight"
-        if key in state_dict:
-            kwargs["refine_channels"] = state_dict[key].shape[0]
 
     return kwargs
 
@@ -141,8 +129,8 @@ def _get_model(model_id: str):
     arch_kwargs = info.get("arch_kwargs", {})
     if not arch_kwargs:
         arch_kwargs = _infer_arch_kwargs(arch_type, state_dict)
-    config = {"network": {"type": arch_type, **arch_kwargs}}
-    model = build_model(config).to(DEVICE)
+    
+    model = build_model(arch_type, **arch_kwargs).to(DEVICE)
 
     model.load_state_dict(state_dict)
     model.eval()
@@ -155,31 +143,13 @@ def _get_model(model_id: str):
 
 def _run_inference(model, is_direct: bool, img_np: np.ndarray) -> np.ndarray:
     """Run inference on a single image."""
-    physics_cfg = CONFIG.get("physics", {})
-
     img_tensor = to_tensor(img_np).to(DEVICE)
 
     with torch.no_grad():
-        if is_direct:
-            dehazed = model(img_tensor)
-            if isinstance(dehazed, tuple):
-                dehazed = dehazed[0]
-        else:
-            # Transmission-based: predict t(x), then physics inversion
-            t_pred = model(img_tensor)
-
-            dark_channel = get_dark_channel(
-                img_tensor,
-                window_size=physics_cfg.get("dark_channel_window", 15)
-            )
-            atm_light = estimate_atmospheric_light(
-                img_tensor, dark_channel,
-                top_percent=physics_cfg.get("atm_light_top_percent", 0.001)
-            )
-            dehazed = recover_image(
-                img_tensor, t_pred, atm_light,
-                t0=physics_cfg.get("t_min", 0.1)
-            )
+        # Both MSFA-DeNet and v2 are direct models
+        dehazed = model(img_tensor)
+        if isinstance(dehazed, tuple):
+            dehazed = dehazed[0]
 
     # Convert back to numpy HWC
     result = dehazed.squeeze(0).cpu().numpy()
@@ -219,12 +189,12 @@ def upload_model():
         return jsonify({"error": "No file provided"}), 400
 
     file = request.files["file"]
-    arch_type = request.form.get("arch_type", "dehazenet_plus")
+    arch_type = request.form.get("arch_type", "msfa_denet")
 
     if not file.filename.endswith(".pth"):
         return jsonify({"error": "Only .pth files are accepted"}), 400
 
-    valid_types = ["dehazenet", "aodnet", "msfa_denet"]
+    valid_types = ["msfa_denet", "msfa_denet_v2"]
     if arch_type not in valid_types:
         return jsonify({"error": f"Invalid architecture type. Must be one of: {valid_types}"}), 400
 
@@ -241,8 +211,8 @@ def upload_model():
         state_dict = torch.load(str(save_path), map_location="cpu", weights_only=True)
         state_dict = _clean_state_dict(state_dict)
         arch_kwargs = _infer_arch_kwargs(arch_type, state_dict)
-        config = {"network": {"type": arch_type, **arch_kwargs}}
-        test_model = build_model(config)
+        
+        test_model = build_model(arch_type, **arch_kwargs)
         test_model.load_state_dict(state_dict)
         del test_model
     except Exception as e:

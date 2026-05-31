@@ -185,9 +185,8 @@
 
     // Map arch type to human-readable names
     const archNames = {
-        'dehazenet': 'DehazeNet',
-        'aodnet': 'AOD-Net',
         'msfa_denet': 'MSFA-DeNet',
+        'msfa_denet_v2': 'MSFA-DeNet v2',
     };
 
     function renderModelList(models) {
